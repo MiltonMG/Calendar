@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import './CalendarModalStyles.css';
 import { addHours, addMonths, differenceInSeconds } from 'date-fns';
@@ -9,7 +9,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { es } from 'date-fns/locale/es';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { useUiStore } from '../../../hooks';
+import { useCalendarStore, useUiStore } from '../../../hooks';
 
 registerLocale('es', es)
 
@@ -35,9 +35,11 @@ export const CalendarModal = () => {
     
     // State
     const [formSubmitted, setFormSubmitted] = useState(false);
+    const { activeEvent, startSavingEvent } = useCalendarStore();
+
     const [formValues, setFormValues] = useState({
-        title: 'Evento',
-        notes: 'Evento de navidad',
+        title: '',
+        notes: '',
         start: new Date(),
         end: addHours(new Date(), 2)
     });
@@ -47,6 +49,15 @@ export const CalendarModal = () => {
         if (!formSubmitted) return '';
         return (formValues.title.trim().length < 2) ? 'is-invalid' : 'is-valid';
     }, [formValues.title, formSubmitted]);
+
+    //useEfect
+    useEffect(() => {
+        if (activeEvent !== null) {
+            setFormValues({
+                ...activeEvent,
+            })
+        }
+    }, [activeEvent])
 
     // Eventos
     const onInputChange = ({ target }) => {
@@ -66,7 +77,7 @@ export const CalendarModal = () => {
         closeDateModal();
     }
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         setFormSubmitted(true);
 
@@ -82,7 +93,9 @@ export const CalendarModal = () => {
             Swal.fire('Titulo incorrecto', 'El titulo debe tener al menos 2 caracteres', 'error');
             return;
         }
+        await startSavingEvent( formValues );
         onCloseModal();
+        setFormSubmitted(false);
     }
 
     return (
